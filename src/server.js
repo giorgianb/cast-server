@@ -1,15 +1,22 @@
 "use strict";
 const http = require('http');
 const url = require('url');
-const child_process = require('child_process');
 const crypto = require("crypto");
+const youtubedl = require('youtube-dl');
+const omxplayer = require('node-omxplayer');
 
 const NO_COMMAND = { error: 100, message: "No command specified." };
 const INVALID_COMMAND = { error: 101, message: "No such command." };
 const MISSING_PARAMETERS = { error: 102, message: "Command missing parameters." };
+const EXPIRED_ID = { error: 103, message: "ID expired, video no longer playing." };
+const UNKNOWN = { error: 1000, message: "Unknown error." };
 
 var castID;
-var player;
+var player = {
+	process: null,
+	playing: false
+};
+
 
 const CROSS_ORIGIN_HEADERS = {
 	"Access-Control-Allow-Origin": "*",
@@ -76,9 +83,9 @@ function cast(req, res, query) {
 		writeResponse(res, MISSING_PARAMETERS);
 	}
 
-	if (player) {
-		player.kill();
-		player = null;
+	if (player.process) {
+		player.process.quit();
+		player.process = null;
 	}
 
 	//	castID = req.headers.host + ":" + query.video;
@@ -86,112 +93,135 @@ function cast(req, res, query) {
 	hash.update(query.video);
 
 	castID = req.headers.host + ":" + hash.digest("hex");
-	const command = "mpv '" + query.video + "' --title='" + castID + "'";
-	player = child_process.exec(command, printChildProcessStream);
-	res.writeHead(200, CROSS_ORIGIN_HEADERS);
-	writeJSONResponse(res, { castID: castID });
+	youtubedl.getInfo(query.video, [], (err, info) => {
+		if (err) {
+			res.writeHead(500, CROSS_ORIGIN_HEADERS);
+			writeResponse(res, UNKNOWN);
+			throw err;
+		}
+
+		player.process = omx(info.url);
+		player.playing = true;
+		res.writeHead(200, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, { castID: castID });
+	});
 }
 
 function togglePause(req, res, query) {
-	const keyPressCommandTemplate = "xdotool search '" + castID + "' windowactivate --sync key ";
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, MISSING_PARAMETERS);
-	}
+	} else if (player.process) { 
+		if (player.playing) {
+			player.process.pause();
+			player.playing = false;
+		} else {
+			player.process.play();
+			player.process.playing = true;
+		}
 
-	const keyPressCommand = keyPressCommandTemplate + "space";
-	child_process.exec(keyPressCommand, printChildProcessStream);
-	res.writeHead(200, CROSS_ORIGIN_HEADERS);
-	writeJSONResponse(res, { success: true });
+		res.writeHead(200, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, { success: true });
+	} else {
+		res.writeHead(400, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, EXPIRED_ID);
+	}
 }
 
 function skipForward(req, res, query) {
-	const keyPressCommandTemplate = "xdotool search '" + castID + "' windowactivate --sync key ";
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, MISSING_PARAMETERS);
+	} else if (player.process) {
+		player.fwd30();
+		res.writeHead(200, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, { success: true });
+	} else {
+		res.writeHead(400, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, EXPIRED_ID);
 	}
-
-	const keyPressCommand = keyPressCommandTemplate + "Right";
-	child_process.exec(keyPressCommand, printChildProcessStream);
-	res.writeHead(200, CROSS_ORIGIN_HEADERS);
-	writeJSONResponse(res, { success: true });
 }
 
 function skipBackwards(req, res, query) {
-	const keyPressCommandTemplate = "xdotool search '" + castID + "' windowactivate --sync key ";
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, MISSING_PARAMETERS);
+	} else if (player.process) {
+		player.back30();
+		res.writeHead(200, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, { success: true });
+	} else {
+		res.writeHead(400, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, EXPIRED_ID);
 	}
-
-	const keyPressCommand = keyPressCommandTemplate + "Left";
-	child_process.exec(keyPressCommand, printChildProcessStream);
-	res.writeHead(200, CROSS_ORIGIN_HEADERS);
-	writeJSONResponse(res, { success: true });
 }
 
 function volumeUp(req, res, query) {
-	const keyPressCommandTemplate = "xdotool search '" + castID + "' windowactivate --sync key ";
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, MISSING_PARAMETERS);
+	} else if (player.process) {
+		player.volUp();
+		res.writeHead(200, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, { success: true });
+	} else {
+		res.writeHead(400, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, EXPIRED_ID);
 	}
-
-	const keyPressCommand = keyPressCommandTemplate + "0";
-	child_process.exec(keyPressCommand, printChildProcessStream);
-	res.writeHead(200, CROSS_ORIGIN_HEADERS);
-	writeJSONResponse(res, { success: true });
 }
 
 function volumeDown(req, res, query) {
-	const keyPressCommandTemplate = "xdotool search '" + castID + "' windowactivate --sync key ";
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, MISSING_PARAMETERS);
+	} else if (player.process) {
+		player.volDown();
+		res.writeHead(200, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, { success: true });
+	} else {
+		res.writeHead(400, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, EXPIRED_ID);
 	}
-
-	const keyPressCommand = keyPressCommandTemplate + "9";
-	child_process.exec(keyPressCommand, printChildProcessStream);
-	res.writeHead(200, CROSS_ORIGIN_HEADERS);
-	writeJSONResponse(res, { success: true });
 }
 
 function speedUp(req, res, query) {
-	const keyPressCommandTemplate = "xdotool search '" + castID + "' windowactivate --sync key ";
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, MISSING_PARAMETERS);
+	} else if (player.process) {
+		player.incSpeed();
+		res.writeHead(200, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, { success: true });
+	} else {
+		res.writeHead(400, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, EXPIRED_ID);
 	}
-
-	const keyPressCommand = keyPressCommandTemplate + "bracketright";
-	child_process.exec(keyPressCommand, printChildProcessStream);
-	res.writeHead(200, CROSS_ORIGIN_HEADERS);
-	writeJSONResponse(res, { success: true });
 }
 
 function slowDown(req, res, query) {
-	const keyPressCommandTemplate = "xdotool search '" + castID + "' windowactivate --sync key ";
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, MISSING_PARAMETERS);
+	}  else if (player.process) {
+		player.decSpeed();
+		res.writeHead(200, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, { success: true });
+	} else {
+		res.writeHead(400, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, EXPIRED_ID);
 	}
-
-	const keyPressCommand = keyPressCommandTemplate + "bracketleft";
-	child_process.exec(keyPressCommand, printChildProcessStream);
-	res.writeHead(200, CROSS_ORIGIN_HEADERS);
-	writeJSONResponse(res, { success: true });
 }
 
 function subtitlesToggle(req, res, query) {
-	const keyPressCommandTemplate = "xdotool search '" + castID + "' windowactivate --sync key ";
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, MISSING_PARAMETERS);
+	} else if (player.process) {
+		player.subtitles();
+		res.writeHead(200, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, { success: true });
+	} else {
+		res.writeHead(400, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, EXPIRED_ID);
 	}
-
-	const keyPressCommand = keyPressCommandTemplate + "v";
-	child_process.exec(keyPressCommand, printChildProcessStream);
-	res.writeHead(200, CROSS_ORIGIN_HEADERS);
-	writeJSONResponse(res, { success: true });
 }
