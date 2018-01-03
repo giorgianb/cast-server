@@ -7,7 +7,7 @@ const omxplayer = require('node-omxplayer');
 
 const NO_COMMAND = { error: 100, message: "No command specified." };
 const INVALID_COMMAND = { error: 101, message: "No such command." };
-const MISSING_PARAMETERS = { error: 102, message: "Command missing parameters." };
+const INVALID_PARAMETERS = { error: 102, message: "Command missing parameters." };
 const EXPIRED_ID = { error: 103, message: "ID expired, video no longer playing." };
 const UNKNOWN = { error: 1000, message: "Unknown error." };
 
@@ -80,7 +80,7 @@ function printChildProcessStream(error, stdout, stderr) {
 function cast(req, res, query) {
 	if (!("video" in query)) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
-		writeResponse(res, MISSING_PARAMETERS);
+		writeResponse(res, INVALID_PARAMETERS);
 	}
 
 	if (player.process) {
@@ -110,7 +110,7 @@ function cast(req, res, query) {
 function togglePause(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
-		writeJSONResponse(res, MISSING_PARAMETERS);
+		writeJSONResponse(res, INVALID_PARAMETERS);
 	} else if (player.process) { 
 		if (player.playing) {
 			player.process.pause();
@@ -131,7 +131,7 @@ function togglePause(req, res, query) {
 function skipForward(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
-		writeJSONResponse(res, MISSING_PARAMETERS);
+		writeJSONResponse(res, INVALID_PARAMETERS);
 	} else if (player.process) {
 		player.fwd30();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
@@ -145,7 +145,7 @@ function skipForward(req, res, query) {
 function skipBackwards(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
-		writeJSONResponse(res, MISSING_PARAMETERS);
+		writeJSONResponse(res, INVALID_PARAMETERS);
 	} else if (player.process) {
 		player.back30();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
@@ -159,7 +159,7 @@ function skipBackwards(req, res, query) {
 function volumeUp(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
-		writeJSONResponse(res, MISSING_PARAMETERS);
+		writeJSONResponse(res, INVALID_PARAMETERS);
 	} else if (player.process) {
 		player.volUp();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
@@ -173,7 +173,7 @@ function volumeUp(req, res, query) {
 function volumeDown(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
-		writeJSONResponse(res, MISSING_PARAMETERS);
+		writeJSONResponse(res, INVALID_PARAMETERS);
 	} else if (player.process) {
 		player.volDown();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
@@ -187,7 +187,7 @@ function volumeDown(req, res, query) {
 function speedUp(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
-		writeJSONResponse(res, MISSING_PARAMETERS);
+		writeJSONResponse(res, INVALID_PARAMETERS);
 	} else if (player.process) {
 		player.incSpeed();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
@@ -201,7 +201,7 @@ function speedUp(req, res, query) {
 function slowDown(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
-		writeJSONResponse(res, MISSING_PARAMETERS);
+		writeJSONResponse(res, INVALID_PARAMETERS);
 	}  else if (player.process) {
 		player.decSpeed();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
@@ -215,7 +215,7 @@ function slowDown(req, res, query) {
 function subtitlesToggle(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
-		writeJSONResponse(res, MISSING_PARAMETERS);
+		writeJSONResponse(res, INVALID_PARAMETERS);
 	} else if (player.process) {
 		player.subtitles();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
