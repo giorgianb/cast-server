@@ -1,0 +1,19 @@
+{
+  "name": "cast-server",
+  "version": "0.0.1",
+  "description": "Server software for the cast software.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/raspberry-pi-cast/cast-server.git"
+  },
+  "author": "Giorgian Borca-Tasciuc",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://gitlab.com/raspberry-pi-cast/cast-server/issues"
+  },
+  "homepage": "https://gitlab.com/raspberry-pi-cast/cast-server#README"
+}
