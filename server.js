@@ -80,7 +80,7 @@ function printChildProcessStream(error, stdout, stderr) {
 function cast(req, res, query) {
 	if (!("video" in query)) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
-		writeResponse(res, INVALID_PARAMETERS);
+		writeJSONResponse(res, INVALID_PARAMETERS);
 	}
 
 	if (player.process) {
@@ -93,14 +93,15 @@ function cast(req, res, query) {
 	hash.update(query.video);
 
 	castID = req.headers.host + ":" + hash.digest("hex");
-	youtubedl.getInfo(query.video, [], (err, info) => {
+	youtubedl.getInfo(query.video, ["-format=bestvideo[ext!=webm]+bestaudio[ext!=webm]/best[ext!=webm]"], (err, info) => {
 		if (err) {
 			res.writeHead(500, CROSS_ORIGIN_HEADERS);
-			writeResponse(res, UNKNOWN);
+			writeJSONResponse(res, UNKNOWN);
 			throw err;
 		}
+    console.log(info.url);
 
-		player.process = omx(info.url);
+		player.process = omxplayer(info.url, "both");
 		player.playing = true;
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, { castID: castID });
