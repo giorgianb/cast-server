@@ -91,7 +91,7 @@ function cast(req, res, query) {
 		writeJSONResponse(res, INVALID_PARAMETERS);
 	}
 
-	if (player.process) {
+	if (player.process && player.process.running) {
 		player.process.quit();
 		player.process = null;
 	}
@@ -99,20 +99,22 @@ function cast(req, res, query) {
 	const hash = crypto.createHash("md5");
 	hash.update(query.video + new Date().getTime());
 
-	var loadingScreen = omxplayer("loading_screen.mp4", "both", true);
+	const loadingScreen = omxplayer("loading_screen.mp4", "both", true);
 	castID = req.headers.host + ":" + hash.digest("hex");
-	youtubedl.getInfo(query.video, ["-format=bestvideo[ext!=webm]+bestaudio[ext!=webm]/best[ext!=webm]"], (err, info) => {
-		if (err) {
-			res.writeHead(500, CROSS_ORIGIN_HEADERS);
-			writeJSONResponse(res, UNKNOWN);
-			throw err;
-		}
-    console.log(info.url);
+	youtubedl.getInfo(query.video, 
+		["-format=bestvideo[ext!=webm]+bestaudio[ext!=webm]/best[ext!=webm]"], 
+		(err, info) => {
+			if (err) {
+				res.writeHead(500, CROSS_ORIGIN_HEADERS);
+				writeJSONResponse(res, UNKNOWN);
+				throw err;
+			}
+			console.log(info.url);
 
-		player.process = omxplayer(info.url, "both");
-		loadingScreen.quit();
+			player.process = omxplayer(info.url, "both");
+			loadingScreen.quit();
 
-		player.playing = true;
+			player.playing = true;
 		});
 
   res.writeHead(200, CROSS_ORIGIN_HEADERS);
@@ -123,7 +125,7 @@ function togglePause(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
-	} else if (player.process) { 
+	} else if (player.process && player.process.running) { 
 		if (player.playing) {
 			player.process.pause();
 			player.playing = false;
@@ -144,7 +146,7 @@ function skipForward(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
-	} else if (player.process) {
+	} else if (player.process && player.process.running) {
 		player.process.fwd30();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, { success: true });
@@ -158,7 +160,7 @@ function skipBackwards(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
-	} else if (player.process) {
+	} else if (player.process && player.process.running) {
 		player.process.back30();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, { success: true });
@@ -172,7 +174,7 @@ function volumeUp(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
-	} else if (player.process) {
+	} else if (player.process && player.process.running) {
 		player.process.volUp();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, { success: true });
@@ -186,7 +188,7 @@ function volumeDown(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
-	} else if (player.process) {
+	} else if (player.process && player.process.running) {
 		player.process.volDown();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, { success: true });
@@ -202,7 +204,8 @@ function isPlaying(req, res, query) {
 		writeJSONResponse(res, INVALID_PARAMETERS);
 	} else {
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
-		writeJSONResponse(res, { isPlaying: ((query.id == castID) ? player.playing : false) });
+		writeJSONResponse(res, { isPlaying: ((query.id == castID) ? player.playing 
+			&& player.process.running : false) });
   }
 }
 
@@ -210,7 +213,7 @@ function speedUp(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
-	} else if (player.process) {
+	} else if (player.process && player.process.running) {
 		player.process.incSpeed();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, { success: true });
@@ -224,7 +227,7 @@ function slowDown(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
-	}  else if (player.process) {
+	}  else if (player.process && player.process.running) {
 		player.process.decSpeed();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, { success: true });
@@ -238,7 +241,7 @@ function subtitlesToggle(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
-	} else if (player.process) {
+	} else if (player.process && player.process.running) {
 		player.process.subtitles();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, { success: true });
