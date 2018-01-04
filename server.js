@@ -12,7 +12,7 @@ const EXPIRED_ID = { error: 103, message: "ID expired, video no longer playing."
 const UNKNOWN = { error: 1000, message: "Unknown error." };
 
 var castID;
-var player = {
+const player = {
 	process: null,
 	playing: false
 };
@@ -30,6 +30,9 @@ var server = http.createServer(function(req, res) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, NO_COMMAND);
 	}
+
+  // TODO: remove in production console.log
+	console.log(query.command);
 		
 	switch (query.command) {
 		case "cast":
@@ -59,6 +62,9 @@ var server = http.createServer(function(req, res) {
 		case "subtitlesToggle":
 			subtitlesToggle(req, res, query);
 			break;
+    case "isPlaying":
+      isPlaying(req, res, query);
+      break;
 		default:
 			res.writeHead(400, CROSS_ORIGIN_HEADERS);
 			writeJSONResponse(res, INVALID_COMMAND);
@@ -68,6 +74,8 @@ var server = http.createServer(function(req, res) {
 server.listen(8080);
 
 function writeJSONResponse(res, JSONResponse) {
+  // TODO: remove console.log in production
+  console.log(JSON.stringify(JSONResponse));
 	res.end(JSON.stringify(JSONResponse));
 }
 
@@ -88,9 +96,8 @@ function cast(req, res, query) {
 		player.process = null;
 	}
 
-	//	castID = req.headers.host + ":" + query.video;
 	const hash = crypto.createHash("md5");
-	hash.update(query.video);
+	hash.update(query.video + new Date().getTime());
 
 	castID = req.headers.host + ":" + hash.digest("hex");
 	youtubedl.getInfo(query.video, ["-format=bestvideo[ext!=webm]+bestaudio[ext!=webm]/best[ext!=webm]"], (err, info) => {
@@ -103,9 +110,9 @@ function cast(req, res, query) {
 
 		player.process = omxplayer(info.url, "both");
 		player.playing = true;
-		res.writeHead(200, CROSS_ORIGIN_HEADERS);
-		writeJSONResponse(res, { castID: castID });
-	});
+		});
+  res.writeHead(200, CROSS_ORIGIN_HEADERS);
+  writeJSONResponse(res, { castID: castID });
 }
 
 function togglePause(req, res, query) {
@@ -118,7 +125,7 @@ function togglePause(req, res, query) {
 			player.playing = false;
 		} else {
 			player.process.play();
-			player.process.playing = true;
+			player.playing = true;
 		}
 
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
@@ -134,7 +141,7 @@ function skipForward(req, res, query) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
 	} else if (player.process) {
-		player.fwd30();
+		player.process.fwd30();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, { success: true });
 	} else {
@@ -148,7 +155,7 @@ function skipBackwards(req, res, query) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
 	} else if (player.process) {
-		player.back30();
+		player.process.back30();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, { success: true });
 	} else {
@@ -162,7 +169,7 @@ function volumeUp(req, res, query) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
 	} else if (player.process) {
-		player.volUp();
+		player.process.volUp();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, { success: true });
 	} else {
@@ -176,7 +183,7 @@ function volumeDown(req, res, query) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
 	} else if (player.process) {
-		player.volDown();
+		player.process.volDown();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, { success: true });
 	} else {
@@ -185,12 +192,22 @@ function volumeDown(req, res, query) {
 	}
 }
 
+function isPlaying(req, res, query) {
+	if (!("id" in query)) {
+		res.writeHead(400, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, INVALID_PARAMETERS);
+	} else {
+		res.writeHead(200, CROSS_ORIGIN_HEADERS);
+		writeJSONResponse(res, { isPlaying: ((query.id == castID) ? player.playing : false) });
+  }
+}
+
 function speedUp(req, res, query) {
 	if (!("id" in query) || query.id != castID) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
 	} else if (player.process) {
-		player.incSpeed();
+		player.process.incSpeed();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, { success: true });
 	} else {
@@ -204,7 +221,7 @@ function slowDown(req, res, query) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
 	}  else if (player.process) {
-		player.decSpeed();
+		player.process.decSpeed();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, { success: true });
 	} else {
@@ -218,7 +235,7 @@ function subtitlesToggle(req, res, query) {
 		res.writeHead(400, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
 	} else if (player.process) {
-		player.subtitles();
+		player.process.subtitles();
 		res.writeHead(200, CROSS_ORIGIN_HEADERS);
 		writeJSONResponse(res, { success: true });
 	} else {
