@@ -99,6 +99,7 @@ function cast(req, res, query) {
 	const hash = crypto.createHash("md5");
 	hash.update(query.video + new Date().getTime());
 
+	var loadingScreen = omxplayer("loading_screen.mp4", "both", true);
 	castID = req.headers.host + ":" + hash.digest("hex");
 	youtubedl.getInfo(query.video, ["-format=bestvideo[ext!=webm]+bestaudio[ext!=webm]/best[ext!=webm]"], (err, info) => {
 		if (err) {
@@ -109,8 +110,11 @@ function cast(req, res, query) {
     console.log(info.url);
 
 		player.process = omxplayer(info.url, "both");
+		loadingScreen.quit();
+
 		player.playing = true;
 		});
+
   res.writeHead(200, CROSS_ORIGIN_HEADERS);
   writeJSONResponse(res, { castID: castID });
 }
