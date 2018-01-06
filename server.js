@@ -199,7 +199,7 @@ app.get("/slowDown", (req, res) => {
 	}
 });
 
-app.get("/subtitlesToggle", (req, res) => {
+app.get("/toggleSubtitles", (req, res) => {
 	if (req.connection.remoteAddress != castClient) {
 		res.writeHead(400, DEFAULT_HEADERS);
 		writeJSONResponse(res, INVALID_PARAMETERS);
