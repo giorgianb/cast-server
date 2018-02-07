@@ -3,6 +3,7 @@ const express = require("express");
 const WebSocket = require("ws");
 const youtubedl = require('youtube-dl');
 const omxplayer = require('node-omxplayer');
+const spawn = require('child_process').spawn;
 const ip = require('ip');
 
 const WEBSOCKET_SERVER_PORT = 1337;
@@ -76,14 +77,21 @@ app.get("/cast", (req, res) => {
 			player.process.newSource(info.url, "both");
       player.process.on("close", () => {
         player.playing = false;
+        console.log('\u001B[2J'); // clear terminal
+        spawn("figlet", 
+          ["-w",  process.stdout.columns, "-c",  'Cast IP Address\n' + ip.address().replace(/\./g, ' . ')])
+            .stdout.on('data', (data) => {
+            console.log(`${data}`)
+          });
+
+
         stateChange();
       });
 
 			player.playing = true;
       stateChange();
 		});
-
-  res.writeHead(200, DEFAULT_HEADERS);
+res.writeHead(200, DEFAULT_HEADERS);
   writeJSONResponse(res, { success: true });
 });
 
@@ -221,4 +229,11 @@ wss.on('connection', (ws, req) => {
 
 server.listen(HTTP_SERVER_PORT, () => {
   console.log("HTTP server listening on %d", server.address().port);
+  console.log('\u001B[2J'); // clear terminal
+  spawn("figlet", 
+    ["-w",  process.stdout.columns, "-c",  'Cast IP Address\n' + ip.address().replace(/\./g, ' . ')])
+      .stdout.on('data', (data) => {
+      console.log(`${data}`)
+    });
+
 });
