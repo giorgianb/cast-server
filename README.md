@@ -7,7 +7,7 @@ See the [Raspberry Pi Website](https://www.raspberrypi.org/downloads/) for instr
 Once Raspbian in installed and connect to the internet, run:
 ```
 curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
-sudo apt install nodejs git omxplayer
+sudo apt install nodejs git omxplayer figlet
 git clone https://gitlab.com/raspberry-pi-cast/cast-server
 cd cast-server
 npm install
