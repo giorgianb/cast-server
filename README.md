@@ -35,6 +35,7 @@ Return:
 _togglePause_: GET, Toggles the pause status of a video.  
 Parameters:  
 &nbsp;&nbsp;_None_  
+Return:  
 &nbsp;&nbsp;JSON-Encoded Data: {  
 &nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
 }  
@@ -42,6 +43,7 @@ Parameters:
 _skipForward_: GET, Skips the video forward by 30 seconds.  
 Parameters:  
 &nbsp;&nbsp;_None_  
+Return:  
 &nbsp;&nbsp;JSON-Encoded Data: {  
 &nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
 }  
@@ -49,6 +51,7 @@ Parameters:
 _skipBackwards_: GET, Skips the video backwards by 30 seconds.  
 Parameters:  
 &nbsp;&nbsp;_None_  
+Return:  
 &nbsp;&nbsp;JSON-Encoded Data: {  
 &nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
 }  
@@ -56,6 +59,7 @@ Parameters:
 _volumeUp_: GET, Raises the video volume.  
 Parameters:  
 &nbsp;&nbsp;_None_  
+Return:  
 &nbsp;&nbsp;JSON-Encoded Data: {  
 &nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
 }  
@@ -63,6 +67,7 @@ Parameters:
 _volumeDown_: GET, Lowers the video volume.  
 Parameters:  
 &nbsp;&nbsp;_None_  
+Return:  
 &nbsp;&nbsp;JSON-Encoded Data: {  
 &nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
 }  
@@ -70,6 +75,7 @@ Parameters:
  _isPlaying_: GET, Returns whether the calling client has a video whether that is playing.  
 Parameters:  
 &nbsp;&nbsp;_None_  
+Return:  
 &nbsp;&nbsp;JSON-Encoded Data: {  
 &nbsp;&nbsp;&nbsp;&nbsp;isPlaying: _isPlaying_, true if the calling client has a playing video, false otherwise.  
 }  
@@ -77,6 +83,7 @@ Parameters:
 _speedUp_: GET, Increases the playback speed of the video.  
 Parameters:  
 &nbsp;&nbsp;_None_  
+Return:  
 &nbsp;&nbsp;JSON-Encoded Data: {  
 &nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
 }  
@@ -84,6 +91,7 @@ Parameters:
 _slowDown_: GET, Decreases the playback speed of the video.  
 Parameters:  
 &nbsp;&nbsp;_None_  
+Return:  
 &nbsp;&nbsp;JSON-Encoded Data: {  
 &nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
 }  
@@ -91,6 +99,7 @@ Parameters:
  _toggleSubtitles_: GET, Toggles whether the video has subtitles.  
 Parameters:  
 &nbsp;&nbsp;_None_  
+Return:  
 &nbsp;&nbsp;JSON-Encoded Data: {  
 &nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
 }  
