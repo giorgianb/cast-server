@@ -24,75 +24,73 @@ Now, to cast videos to your Raspberry Pi, please use the
 
 
 ## API
-
-
-_cast_: GET, Casts a video.
-Parameters:
-&nbsp;&nbsp;**video**: _string_, URL of the video to play.
-Return:
-&nbsp;&nbsp;JSON-Encoded Data: {
+_cast_: GET, Casts a video.  
+Parameters:  
+&nbsp;&nbsp;**video**: _string_, URL of the video to play.  
+Return:  
+&nbsp;&nbsp;JSON-Encoded Data: {  
 &nbsp;&nbsp;&nbsp;&nbsp;**status**: _int_, MISSING_PARAMETERS if _video_ if not specified, SUCCESS otherwise.
-}
+}  
 
-_togglePause_: GET, Toggles the pause status of a video.
-Parameters:
-&nbsp;&nbsp;_None_
-&nbsp;&nbsp;JSON-Encoded Data: {
-&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.
-}
+_togglePause_: GET, Toggles the pause status of a video.  
+Parameters:  
+&nbsp;&nbsp;_None_  
+&nbsp;&nbsp;JSON-Encoded Data: {  
+&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
+}  
 
-_skipForward_: GET, Skips the video forward by 30 seconds.
-Parameters:
-&nbsp;&nbsp;_None_
-&nbsp;&nbsp;JSON-Encoded Data: {
-&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.
-}
+_skipForward_: GET, Skips the video forward by 30 seconds.  
+Parameters:  
+&nbsp;&nbsp;_None_  
+&nbsp;&nbsp;JSON-Encoded Data: {  
+&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
+}  
 
-_skipBackwards_: GET, Skips the video backwards by 30 seconds.
-Parameters:
-&nbsp;&nbsp;_None_
-&nbsp;&nbsp;JSON-Encoded Data: {
-&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.
-}
+_skipBackwards_: GET, Skips the video backwards by 30 seconds.  
+Parameters:  
+&nbsp;&nbsp;_None_  
+&nbsp;&nbsp;JSON-Encoded Data: {  
+&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
+}  
 
-_volumeUp_: GET, Raises the video volume.
-Parameters:
-&nbsp;&nbsp;_None_
-&nbsp;&nbsp;JSON-Encoded Data: {
-&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.
-}
+_volumeUp_: GET, Raises the video volume.  
+Parameters:  
+&nbsp;&nbsp;_None_  
+&nbsp;&nbsp;JSON-Encoded Data: {  
+&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
+}  
 
-_volumeDown_: GET, Lowers the video volume.
-Parameters:
-&nbsp;&nbsp;_None_
-&nbsp;&nbsp;JSON-Encoded Data: {
-&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.
-}
+_volumeDown_: GET, Lowers the video volume.  
+Parameters:  
+&nbsp;&nbsp;_None_  
+&nbsp;&nbsp;JSON-Encoded Data: {  
+&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
+}  
 
- _isPlaying_: GET, Returns whether the calling client has a video whether that is playing.
-Parameters:
-&nbsp;&nbsp;_None_
-&nbsp;&nbsp;JSON-Encoded Data: {
-&nbsp;&nbsp;&nbsp;&nbsp;isPlaying: _isPlaying_, true if the calling client has a playing video, false otherwise.
-}
+ _isPlaying_: GET, Returns whether the calling client has a video whether that is playing.  
+Parameters:  
+&nbsp;&nbsp;_None_  
+&nbsp;&nbsp;JSON-Encoded Data: {  
+&nbsp;&nbsp;&nbsp;&nbsp;isPlaying: _isPlaying_, true if the calling client has a playing video, false otherwise.  
+}  
 
-_speedUp_: GET, Increases the playback speed of the video.
-Parameters:
-&nbsp;&nbsp;_None_
-&nbsp;&nbsp;JSON-Encoded Data: {
-&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.
-}
+_speedUp_: GET, Increases the playback speed of the video.  
+Parameters:  
+&nbsp;&nbsp;_None_  
+&nbsp;&nbsp;JSON-Encoded Data: {  
+&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
+}  
 
-_slowDown_: GET, Decreases the playback speed of the video.
-Parameters:
-&nbsp;&nbsp;_None_
-&nbsp;&nbsp;JSON-Encoded Data: {
-&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.
-}
+_slowDown_: GET, Decreases the playback speed of the video.  
+Parameters:  
+&nbsp;&nbsp;_None_  
+&nbsp;&nbsp;JSON-Encoded Data: {  
+&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
+}  
 
- _toggleSubtitles_: GET, Toggles whether the video has subtitles.
-Parameters:
-&nbsp;&nbsp;_None_
-&nbsp;&nbsp;JSON-Encoded Data: {
-&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.
-}
+ _toggleSubtitles_: GET, Toggles whether the video has subtitles.  
+Parameters:  
+&nbsp;&nbsp;_None_  
+&nbsp;&nbsp;JSON-Encoded Data: {  
+&nbsp;&nbsp;&nbsp;&nbsp;status: _int_, INVALID_PARAMETERS if the client IP address does not match the casting IP address, EXPIRED_CAST if no longer costing, SUCCESS otherwise.  
+}  
