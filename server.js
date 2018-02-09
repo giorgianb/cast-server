@@ -16,9 +16,9 @@ const wss = new WebSocket.Server({ port: WEBSOCKET_SERVER_PORT }, () => {
 });
 
 /* Error values */
-const INVALID_PARAMETERS = { error: 101, message: "Command missing parameters." };
-const EXPIRED_CAST = { error: 102, message: "Cast expired, video no longer playing." };
-const UNKNOWN = { error: 1000, message: "Unknown error." };
+const INVALID_PARAMETERS = { error: 101 };
+const EXPIRED_CAST = { error: 102 };
+const UNKNOWN = { error: 1000 };
 
 var castClient;
 const player = {
