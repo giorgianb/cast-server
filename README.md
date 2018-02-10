@@ -29,7 +29,7 @@ Parameters:
 &nbsp;&nbsp;**video**: _string_, URL of the video to play.  
 Return:  
 &nbsp;&nbsp;JSON-Encoded Data: {  
-&nbsp;&nbsp;&nbsp;&nbsp;**status**: _int_, MISSING_PARAMETERS if _video_ if not specified, SUCCESS otherwise.
+&nbsp;&nbsp;&nbsp;&nbsp;**status**: _int_, MISSING_PARAMETERS if _video_ if not specified, SUCCESS otherwise.  
 }   
 
 _togglePause_: GET, Toggles the pause status of a video.  
