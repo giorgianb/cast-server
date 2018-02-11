@@ -247,16 +247,9 @@ wss.on('connection', (ws, req) => {
 
 server.listen(HTTP_SERVER_PORT, () => {
   console.log("HTTP server listening on %d", server.address().port);
-  clearScreen();
   spawn(
     "setterm",
     ["-powersave", "off", "-blank", "0"]
   );
-  spawn(
-    "figlet", 
-    ["-w",  process.stdout.columns, "-c",  'Cast IP Address\n' + ip.address().replace(/\./g, ' . ')])
-      .stdout.on('data', (data) => {
-      console.log(`${data}`)
-    });
-
+  printIPAddress();
 });
