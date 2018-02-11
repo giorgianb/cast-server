@@ -59,14 +59,14 @@ function printIPAddress() {
 
   figlet.stdout.on('data', (data) => {
     console.log(`${data}`);
-    newLineCount += (data.match(/\n/g) || []).length;
+    newLineCount += (String(data).match(/\n/g) || []).length;
 
   });
 
   figlet.on("close", () => {
-    const lines = (process.stdout.rows - newLineCount) / 2;
+    const lines = (process.stdout.rows - newLineCount) / 4;
     for (let i = 0; i < lines; ++i)
-      console.out('\n');
+      console.log('\n');
   });
 }
 
