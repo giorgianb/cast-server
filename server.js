@@ -63,7 +63,7 @@ function printIPAddress() {
 
   });
 
-  figlet.on("close" => {
+  figlet.on("close", () => {
     const lines = (process.stdout.rows - newLineCount) / 2;
     for (let i = 0; i < lines; ++i)
       console.out('\n');
