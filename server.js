@@ -35,8 +35,6 @@ const DEFAULT_HEADERS = {
 };
 
 function writeJSONResponse(res, JSONResponse) {
-  // TODO: remove console.log in production
-  console.log(JSON.stringify(JSONResponse));
 	res.end(JSON.stringify(JSONResponse));
 }
 
@@ -49,6 +47,31 @@ function stateChange() {
     if (client.ws.readyState == WebSocket.OPEN)
       client.ws.send(JSON.stringify({ isPlaying: isPlaying(client.address) }));
   });
+}
+
+function printIPAddress() {
+  clearScreen();
+  let newLineCount = 0; 
+  const figlet = spawn(
+    "figlet", 
+    ["-w",  process.stdout.columns, "-c",  'Cast IP Address\n' + ip.address().replace(/\./g, ' . ')]
+  );
+
+  figlet.stdout.on('data', (data) => {
+    console.log(`${data}`);
+    newLineCount += (data.match(/\n/g) || []).length;
+
+  });
+
+  figlet.on("close" => {
+    const lines = (process.stdout.rows - newLineCount) / 2;
+    for (let i = 0; i < lines; ++i)
+      console.out('\n');
+  });
+}
+
+function clearScreen() {
+  console.log('\u001B[2J');
 }
 
 
@@ -74,24 +97,19 @@ app.get("/cast", (req, res) => {
 				throw err;
 			}
 
+      clearScreen();
 			player.process.newSource(info.url, "both");
       player.process.on("close", () => {
         player.playing = false;
-        console.log('\u001B[2J'); // clear terminal
-        spawn("figlet", 
-          ["-w",  process.stdout.columns, "-c",  'Cast IP Address\n' + ip.address().replace(/\./g, ' . ')])
-            .stdout.on('data', (data) => {
-            console.log(`${data}`)
-          });
-
-
+        printIPAddress();
         stateChange();
       });
 
 			player.playing = true;
       stateChange();
 		});
-res.writeHead(200, DEFAULT_HEADERS);
+
+  res.writeHead(200, DEFAULT_HEADERS);
   writeJSONResponse(res, { success: true });
 });
 
@@ -229,8 +247,13 @@ wss.on('connection', (ws, req) => {
 
 server.listen(HTTP_SERVER_PORT, () => {
   console.log("HTTP server listening on %d", server.address().port);
-  console.log('\u001B[2J'); // clear terminal
-  spawn("figlet", 
+  clearScreen();
+  spawn(
+    "setterm",
+    ["-powersave", "off", "-blank", "0"]
+  );
+  spawn(
+    "figlet", 
     ["-w",  process.stdout.columns, "-c",  'Cast IP Address\n' + ip.address().replace(/\./g, ' . ')])
       .stdout.on('data', (data) => {
       console.log(`${data}`)
