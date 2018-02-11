@@ -63,7 +63,7 @@ app.get("/cast", (req, res) => {
 		player.process = null;
 	}
 
-	player.process = omxplayer("loading_screen.mp4", "both", true);
+	player.process = omxplayer("loading-screen.mp4", "both", true);
 	castClient = req.connection.remoteAddress;
 	youtubedl.getInfo(req.query.video, 
 		["-format=bestvideo[ext!=webm]+bestaudio[ext!=webm]/best[ext!=webm]"], 
