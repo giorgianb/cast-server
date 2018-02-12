@@ -83,13 +83,11 @@ app.get("/cast", (req, res) => {
 		writeJSONResponse(res, INVALID_PARAMETERS);
 	}
 
-	if (player.process && player.process.running) {
-		player.process.quit();
-		player.process = null;
-	}
+  if (!player.process || !player.process.running)
+    player.process = omxplayer("loading-screen.mp4", "both", true);
+  else
+    player.process.newSource("loading-screen.mp4", "both", true);
 
-
-	player.process = omxplayer("loading-screen.mp4", "both", true);
 	castClient = req.connection.remoteAddress;
   castID = (new Date()) + Math.random();
   let currentCastID = castID;
