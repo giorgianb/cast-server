@@ -2,7 +2,7 @@
 const express = require("express");
 const WebSocket = require("ws");
 const youtubedl = require('youtube-dl');
-const omxplayer = require('node-omxplayer');
+const omxplayer = require('node-omxplayer-raspberry-pi-cast');
 const spawn = require('child_process').spawn;
 const ip = require('ip');
 
