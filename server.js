@@ -25,6 +25,8 @@ const player = {
 	process: null,
 	playing: false
 };
+const castID = null;
+
 const wsClients = [];
 
 const DEFAULT_HEADERS = {
@@ -86,12 +88,18 @@ app.get("/cast", (req, res) => {
 		player.process = null;
 	}
 
+
 	player.process = omxplayer("loading-screen.mp4", "both", true);
 	castClient = req.connection.remoteAddress;
+  castID = (new Date()) + Math.random();
+  let currentCastID = castID;
 	youtubedl.getInfo(req.query.video, 
 		["-format=bestvideo[ext!=webm]+bestaudio[ext!=webm]/best[ext!=webm]"], 
 		(err, info) => {
-			if (err) {
+      /* make sure no new casts have been made while we were fetching the video URL */
+      if (currentCastID != castID)
+        return;
+      else if (err) {
 				res.writeHead(500, DEFAULT_HEADERS);
 				writeJSONResponse(res, UNKNOWN);
 				throw err;
