@@ -25,7 +25,7 @@ const player = {
 	process: null,
 	playing: false
 };
-const castID = null;
+var castID = null;
 
 const wsClients = [];
 
