@@ -2,7 +2,7 @@
 const express = require("express");
 const WebSocket = require("ws");
 const youtubedl = require('youtube-dl');
-const Omx = require('node-omxplayer-raspberry-pi-cast');
+const OMXPlayer = require('node-omxplayer-raspberry-pi-cast');
 const spawn = require('child_process').spawn;
 const ip = require('ip');
 
@@ -84,7 +84,7 @@ app.get("/cast", (req, res) => {
 	}
 
   if (!player.process || !player.process.running)
-    player.process = new Omx("loading-screen.mp4", "both", true);
+    player.process = new OMXPlayer("loading-screen.mp4", "both", true);
   else
     player.process.newSource("loading-screen.mp4", "both", true);
 
