@@ -1,6 +1,8 @@
 # cast-server
 The server for the cast software, which allows videos to be cast from a web browser to a Raspberry Pi.
 
+Note: Due to Node.js no longer supporting ARMv6 in their newer releases, at least a Raspberry Pi 2 is required. There is a plan to eventually backport `cast-server` to the original Raspberry Pi.
+
 ## Installation
 See the [Raspberry Pi Website](https://www.raspberrypi.org/downloads/) for instructions on how to install Raspbian.
 
