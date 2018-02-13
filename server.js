@@ -84,7 +84,7 @@ app.get("/cast", (req, res) => {
 	}
 
   if (!player.process || !player.process.running)
-    player.process = omxplayer("loading-screen.mp4", "both", true);
+    player.process = new omxplayer("loading-screen.mp4", "both", true);
   else
     player.process.newSource("loading-screen.mp4", "both", true);
 
