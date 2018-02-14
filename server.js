@@ -22,22 +22,22 @@ const UNKNOWN = { error: 1000 };
 
 var castClient;
 const player = {
-	process: null,
-	playing: false
+  process: null,
+  playing: false
 };
 var castID = null;
 
 const wsClients = [];
 
 const DEFAULT_HEADERS = {
-	"Access-Control-Allow-Origin": "*",
-	"Access-Control-Allow-Methods": "GET",
-	"Access-Control-Allow-Headers": "X-Requested-With",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET",
+  "Access-Control-Allow-Headers": "X-Requested-With",
   "content-type": "application/json"
 };
 
 function writeJSONResponse(res, JSONResponse) {
-	res.end(JSON.stringify(JSONResponse));
+  res.end(JSON.stringify(JSONResponse));
 }
 
 function isPlaying(host) {
@@ -78,171 +78,171 @@ function clearScreen() {
 
 
 app.get("/cast", (req, res) => {
-	if (!("video" in req.query)) {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, INVALID_PARAMETERS);
-	}
+  if (!("video" in req.query)) {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, INVALID_PARAMETERS);
+  }
 
   if (!player.process || !player.process.running)
     player.process = omxplayer("loading-screen.mp4", "both", true);
   else
     player.process.newSource("loading-screen.mp4", "both", true);
 
-	castClient = req.connection.remoteAddress;
+  castClient = req.connection.remoteAddress;
   castID = (new Date()) + Math.random();
   let currentCastID = castID;
-	youtubedl.getInfo(req.query.video, 
-		["-format=bestvideo[ext!=webm]+bestaudio[ext!=webm]/best[ext!=webm]"], 
-		(err, info) => {
+  youtubedl.getInfo(req.query.video, 
+    ["-format=bestvideo[ext!=webm]+bestaudio[ext!=webm]/best[ext!=webm]"], 
+    (err, info) => {
       /* make sure no new casts have been made while we were fetching the video URL */
       if (currentCastID != castID)
         return;
       else if (err) {
-				res.writeHead(500, DEFAULT_HEADERS);
-				writeJSONResponse(res, UNKNOWN);
-				throw err;
-			}
+        res.writeHead(500, DEFAULT_HEADERS);
+        writeJSONResponse(res, UNKNOWN);
+        throw err;
+      }
 
       clearScreen();
-			player.process.newSource(info.url, "both");
+      player.process.newSource(info.url, "both");
       player.process.on("close", () => {
         player.playing = false;
         printIPAddress();
         stateChange();
       });
 
-			player.playing = true;
+      player.playing = true;
       stateChange();
-		});
+    });
 
   res.writeHead(200, DEFAULT_HEADERS);
   writeJSONResponse(res, { success: true });
 });
 
 app.get("/togglePause", (req, res) => {
-	if (req.connection.remoteAddress != castClient) {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, INVALID_PARAMETERS);
-	} else if (player.process && player.process.running) { 
-		if (player.playing) {
-			player.process.pause();
-			player.playing = false;
+  if (req.connection.remoteAddress != castClient) {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, INVALID_PARAMETERS);
+  } else if (player.process && player.process.running) { 
+    if (player.playing) {
+      player.process.pause();
+      player.playing = false;
       stateChange();
-		} else {
-			player.process.play();
-			player.playing = true;
+    } else {
+      player.process.play();
+      player.playing = true;
       stateChange();
-		}
+    }
 
-		res.writeHead(200, DEFAULT_HEADERS);
-		writeJSONResponse(res, { success: true });
-	} else {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, EXPIRED_CAST);
-	}
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { success: true });
+  } else {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, EXPIRED_CAST);
+  }
 });
 
 app.get("/skipForward", (req, res) => {
-	if (req.connection.remoteAddress != castClient) {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, INVALID_PARAMETERS);
-	} else if (player.process && player.process.running) {
-		player.process.fwd30();
-		res.writeHead(200, DEFAULT_HEADERS);
-		writeJSONResponse(res, { success: true });
-	} else {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, EXPIRED_CAST);
-	}
+  if (req.connection.remoteAddress != castClient) {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, INVALID_PARAMETERS);
+  } else if (player.process && player.process.running) {
+    player.process.fwd30();
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { success: true });
+  } else {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, EXPIRED_CAST);
+  }
 });
 
 app.get("/skipBackwards", (req, res) => {
-	if (req.connection.remoteAddress != castClient) {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, INVALID_PARAMETERS);
-	} else if (player.process && player.process.running) {
-		player.process.back30();
-		res.writeHead(200, DEFAULT_HEADERS);
-		writeJSONResponse(res, { success: true });
-	} else {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, EXPIRED_CAST);
-	}
+  if (req.connection.remoteAddress != castClient) {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, INVALID_PARAMETERS);
+  } else if (player.process && player.process.running) {
+    player.process.back30();
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { success: true });
+  } else {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, EXPIRED_CAST);
+  }
 });
 
 app.get("/volumeUp", (req, res) => {
-	if (req.connection.remoteAddress != castClient) {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, INVALID_PARAMETERS);
-	} else if (player.process && player.process.running) {
-		player.process.volUp();
-		res.writeHead(200, DEFAULT_HEADERS);
-		writeJSONResponse(res, { success: true });
-	} else {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, EXPIRED_CAST);
-	}
+  if (req.connection.remoteAddress != castClient) {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, INVALID_PARAMETERS);
+  } else if (player.process && player.process.running) {
+    player.process.volUp();
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { success: true });
+  } else {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, EXPIRED_CAST);
+  }
 });
 
 app.get("/volumeDown", (req, res) => {
-	if (req.connection.remoteAddress != castClient) {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, INVALID_PARAMETERS);
-	} else if (player.process && player.process.running) {
-		player.process.volDown();
-		res.writeHead(200, DEFAULT_HEADERS);
-		writeJSONResponse(res, { success: true });
-	} else {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, EXPIRED_CAST);
-	}
+  if (req.connection.remoteAddress != castClient) {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, INVALID_PARAMETERS);
+  } else if (player.process && player.process.running) {
+    player.process.volDown();
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { success: true });
+  } else {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, EXPIRED_CAST);
+  }
 });
 
 app.get("/isPlaying", (req, res) => {
-		res.writeHead(200, DEFAULT_HEADERS);
-		writeJSONResponse(res, { isPlaying: isPlaying(req.connection.remoteAddress) });
+  res.writeHead(200, DEFAULT_HEADERS);
+  writeJSONResponse(res, { isPlaying: isPlaying(req.connection.remoteAddress) });
 });
 
 app.get("/speedUp", (req, res) => {
-	if (req.connection.remoteAddress != castClient) {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, INVALID_PARAMETERS);
-	} else if (player.process && player.process.running) {
-		player.process.incSpeed();
-		res.writeHead(200, DEFAULT_HEADERS);
-		writeJSONResponse(res, { success: true });
-	} else {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, EXPIRED_CAST);
-	}
+  if (req.connection.remoteAddress != castClient) {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, INVALID_PARAMETERS);
+  } else if (player.process && player.process.running) {
+    player.process.incSpeed();
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { success: true });
+  } else {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, EXPIRED_CAST);
+  }
 });
 
 app.get("/slowDown", (req, res) => {
-	if (req.connection.remoteAddress != castClient) {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, INVALID_PARAMETERS);
-	}  else if (player.process && player.process.running) {
-		player.process.decSpeed();
-		res.writeHead(200, DEFAULT_HEADERS);
-		writeJSONResponse(res, { success: true });
-	} else {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, EXPIRED_CAST);
-	}
+  if (req.connection.remoteAddress != castClient) {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, INVALID_PARAMETERS);
+  }  else if (player.process && player.process.running) {
+    player.process.decSpeed();
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { success: true });
+  } else {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, EXPIRED_CAST);
+  }
 });
 
 app.get("/toggleSubtitles", (req, res) => {
-	if (req.connection.remoteAddress != castClient) {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, INVALID_PARAMETERS);
-	} else if (player.process && player.process.running) {
-		player.process.subtitles();
-		res.writeHead(200, DEFAULT_HEADERS);
-		writeJSONResponse(res, { success: true });
-	} else {
-		res.writeHead(400, DEFAULT_HEADERS);
-		writeJSONResponse(res, EXPIRED_CAST);
-	}
+  if (req.connection.remoteAddress != castClient) {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, INVALID_PARAMETERS);
+  } else if (player.process && player.process.running) {
+    player.process.subtitles();
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { success: true });
+  } else {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, EXPIRED_CAST);
+  }
 });
 
 wss.on('connection', (ws, req) => {
