@@ -1,3 +1,4 @@
+[Instrucțiuni în limba română](README-ro_RO.md)
 # cast-server
 The server for the cast software, which allows videos to be cast from a web browser to a Raspberry Pi.
 
@@ -6,7 +7,7 @@ Note: Due to Node.js no longer supporting ARMv6 in their newer releases, at leas
 ## Installation
 See the [Raspberry Pi Website](https://www.raspberrypi.org/downloads/) for instructions on how to install Raspbian.
 
-Once Raspbian in installed and connect to the internet, run:
+Once Raspbian in installed and connected to the internet, run:
 ```
 curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
 sudo apt install nodejs git omxplayer figlet
