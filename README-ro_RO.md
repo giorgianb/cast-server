@@ -1,7 +1,7 @@
 # cast-server
 Server-ul pentru software-ul cast, care permite utilizatorului să ruleze video-uri de la un navigator web pe un Raspberry Pi.
 
-Advertisment: Datorit faptului că varientele mai noi de Node.js nu mai rulează pe procesoarele de ARMv6, este nevoie de un Raspberry Pi 2 sau mai nou. Există planuri ca să facă software-ul cast să ruleze pe Raspberry Pi 1, numai că aceste planuri sînt mult în viitor.
+Advertisment: Datorit faptului că varientele mai noi de Node.js nu mai rulează pe procesoarele de ARMv6, este nevoie de un Raspberry Pi 2 sau mai nou. În viitor software-ul va fi modificat pentru a putea rula si pe Raspberry Pi 1.
 
 ## Instalare
 Vedeți [site-ul de Raspberry Pi](https://www.raspberrypi.org/downloads/) pentru instrucțiunile de a instala Raspbian.
