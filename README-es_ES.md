@@ -4,7 +4,7 @@ El software de servidor para el software cast, cual permite al usario reproducir
 Aviso: Porque los variantes mas nuevos de Node.js nu funcionan con los procesadores de ARMv6, se necesita al menos un Raspberry Pi 2. En el futuro el software será modificado para que funcione con el Raspberry Pi 1.
 
 ## Instalar
-Ven [site-ul de Raspberry Pi](https://www.raspberrypi.org/downloads/) para instrucciones de como instalar Raspbian.
+Ven [el sitio web de Raspberry Pi](https://www.raspberrypi.org/downloads/) para instrucciones de como instalar Raspbian.
 
 En cuanto se instaló Raspbian y el sistema está conectado a la red, ejecutan estos comandos:
 ```
