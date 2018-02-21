@@ -17,6 +17,7 @@ npm install
 
 ## Ejecutar
 ```
+setterm -powersave off -blank 0
 cd cast-server
 node server.js
 ```
