@@ -206,7 +206,7 @@ app.get("/skipBackwards", (req, res) => {
     res.writeHead(400, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: INVALID_PARAMETERS });
   } else if (cast.process && cast.process.running) {
-    cast.process.seek(30 * 10**6);
+    cast.process.seek(-30 * 10**6);
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
   } else {
