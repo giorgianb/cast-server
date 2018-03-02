@@ -21,6 +21,7 @@ const wss = new WebSocket.Server({ port: WEBSOCKET_SERVER_PORT }, () => {
 const SUCCESS = 0;
 const INVALID_PARAMETERS = 101;
 const EXPIRED_CAST = 102;
+const NO_CAST = 103;
 const UNKNOWN  = 1000;
 
 const cast = {
@@ -52,6 +53,24 @@ function stateChange() {
     if (client.ws.readyState == WebSocket.OPEN)
       client.ws.send(JSON.stringify({ isPlaying: isPlaying(client.address) }));
   });
+}
+
+/* returns true of validation succeeded, false otherwise */
+function validateRequest(req, res) {
+  if (cast.process || !cast.process.ready) {
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { status: NO_CAST });
+    return false;
+  } else if (req.connection.remoteAddress != cast.client) {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, { status: INVALID_PARAMETERS });
+    return false;
+  } else if (!cast.process.running) {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, { status: EXPIRED_CAST });
+    return false;
+  }
+  return true;
 }
 
 function printIPAddress() {
@@ -86,9 +105,9 @@ app.get("/cast", (req, res) => {
   }
 
   if (!cast.process || !cast.process.running)
-    cast.process = new OMXPlayer("loading-screen.mp4", "both", true);
+    cast.process = new OMXPlayer({ source: "loading-screen.mp4", output: "both", loop: true });
   else
-    cast.process.newSource("loading-screen.mp4", "both", true);
+    cast.process.newSource({ source: "loading-screen.mp4", output: "both", loop: true });
 
   cast.client = req.connection.remoteAddress;
   cast.id = (new Date()) + Math.random();
@@ -106,7 +125,26 @@ app.get("/cast", (req, res) => {
       }
 
       clearScreen();
-      cast.process.newSource(info.url, "both");
+      cast.process.newSource({ source: info.url, output: "both" }, () => {
+        if (currentCastID == cast.id) {
+          cast.process.getDuration((err, duration) => {
+            if (err) {
+              res.writeHead(400, DEFAULT_HEADERS);
+              writeJSONResponse(res, { status: UNKNOWN });
+            } else if (cast.id != currentCastID) {
+              res.writeHead(400, DEFAULT_HEADERS);
+              writeJSONResponse(res, { status: EXPIRED_CAST });
+            } else {
+              res.writeHead(200, DEFAULT_HEADERS);
+              writeJSONResponse(res, { duration: duration, status: SUCCESS });
+            }
+          });
+        } else {
+          res.writeHead(400, DEFAULT_HEADERS);
+          writeJSONResponse(res, { status: EXPIRED_CAST });
+        }
+      });
+
       cast.process.on("close", () => {
         cast.playing = false;
         printIPAddress();
@@ -122,208 +160,175 @@ app.get("/cast", (req, res) => {
 });
 
 app.get("/play", (req, res) => {
-  if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } else if (req.connection.remoteAddress != cast.client) {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: INVALID_PARAMETERS });
-  } else if (cast.process && cast.process.running) { 
+  if (validateRequest(req, res))
     cast.process.play();
     cast.playing = true;
     stateChange();
 
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
-  } else {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: EXPIRED_CAST });
-  }
+  } 
 });
 
 app.get("/pause", (req, res) => {
-  if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } else if (req.connection.remoteAddress != cast.client) {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: INVALID_PARAMETERS });
-  } else if (cast.process && cast.process.running) { 
+  if (validateRequest(req, res)) { 
     cast.process.pause();
     cast.playing = false;
     stateChange();
 
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
+  } 
+});
+
+app.get("/getPosition", (req, res) => {
+  if (validateRequest(req, res)) { 
+    cast.process.getPosition((err, pos) => {
+      if (!err) {
+        res.writeHead(200, DEFAULT_HEADERS);
+        writeJSONResponse(res, { position: (pos < 0) ? 0 : pos, status: SUCCESS });
+      } else {
+        res.writeHead(400, DEFAULT_HEADERS);
+        writeJSONResponse(res, { status: UNKNOWN });
+      });
+    });
+  }
+});
+
+app.post("/setPosition", (req, res) => {
+  if ("position" in req.query) { 
+    if (validateRequest(req, res)) {
+      cast.process.setPosition(req.query.position, (err, pos) => {
+        if (!err && pos) {
+          res.writeHead(200, DEFAULT_HEADERS);
+          writeJSONResponse(res, { position: (pos < 0) ? 0 : pos, status: SUCCESS });
+        } else {
+          res.writeHead(400, DEFAULT_HEADERS);
+          writeJSONResponse(res, { status: UNKNOWN });
+        });
+      });
+    }
   } else {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: EXPIRED_CAST });
+    res.writeHead(400, DEfAULT_HEADERS)
+    writeJSONResponse(res, { status: INVALID_PARAMETERS });
   }
 });
 
 app.get("/quit", (req, res) => {
-  if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } else if (req.connection.remoteAddress != cast.client) {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: INVALID_PARAMETERS });
-  } else if (cast.process && cast.process.running) { 
+  if (validateRequest(req, res)) { 
     cast.process.quit();
     cast.playing = false;
     stateChange();
 
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
-  } else {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: EXPIRED_CAST });
   }
 });
 
 app.get("/skipForward", (req, res) => {
- if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } else if (req.connection.remoteAddress != cast.client) {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: INVALID_PARAMETERS });
-  } else if (cast.process && cast.process.running) {
+  if (validateRequest(req, res)) {
     cast.process.seek(30 * 10**6);
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
-  } else {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: EXPIRED_CAST });
   }
 });
 
 app.get("/skipBackwards", (req, res) => {
- if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } else if (req.connection.remoteAddress != cast.client) {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: INVALID_PARAMETERS });
-  } else if (cast.process && cast.process.running) {
+  if (validateRequest(req, res)) {
     cast.process.seek(-30 * 10**6);
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
-  } else {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: EXPIRED_CAST });
   }
 });
 
 app.get("/increaseVolume", (req, res) => {
- if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } else if (req.connection.remoteAddress != cast.client) {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: INVALID_PARAMETERS });
-  } else if (cast.process && cast.process.running) {
+  if (validateRequest(req, res)) {
     cast.process.increaseVolume();
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
-  } else {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: EXPIRED_CAST });
   }
 });
 
 app.get("/decreaseVolume", (req, res) => {
- if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } else if (req.connection.remoteAddress != cast.client) {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: INVALID_PARAMETERS });
-  } else if (cast.process && cast.process.running) {
+  if (validateRequest(req, res)) {
     cast.process.decreaseVolume();
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
+  }
+});
+
+app.get("/getVolume", (req, res) => {
+  if (validateRequest(req, res)) { 
+    cast.process.getVolume((err, vol) => {
+      if (!err) {
+        res.writeHead(200, DEFAULT_HEADERS);
+        writeJSONResponse(res, { volume: vol, status: SUCCESS });
+      } else {
+        res.writeHead(400, DEFAULT_HEADERS);
+        writeJSONResponse(res, { status: UNKNOWN });
+      });
+    });
+  }
+});
+
+app.post("/setVolume", (req, res) => {
+  if ("volume" in req.query) { 
+    if (validateRequest(req, res)) {
+      cast.process.setPosition(req.query.volume, (err, vol) => {
+        if (!err && pos) {
+          res.writeHead(200, DEFAULT_HEADERS);
+          writeJSONResponse(res, { volume: vol, status: SUCCESS });
+        } else {
+          res.writeHead(400, DEFAULT_HEADERS);
+          writeJSONResponse(res, { status: UNKNOWN });
+        });
+      });
+    }
   } else {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: EXPIRED_CAST });
+    res.writeHead(400, DEfAULT_HEADERS)
+    writeJSONResponse(res, { status: INVALID_PARAMETERS });
   }
 });
 
 app.get("/isPlaying", (req, res) => {
  if (cast.process && !cast.process.ready) {
     res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS, isPlaying: false });
+    writeJSONResponse(res, { status: NO_CAST, isPlaying: false });
   } else  {
     res.writeHead(200, DEFAULT_HEADERS)
-    writeJSONResponse(res, { isPlaying: isPlaying(req.connection.remoteAddress) });
+    writeJSONResponse(res, { isPlaying: isPlaying(req.connection.remoteAddress), status: SUCCESS });
   }
 });
 
 app.get("/increaseSpeed", (req, res) => {
- if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } else if (req.connection.remoteAddress != cast.client) {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: INVALID_PARAMETERS });
-  } else if (cast.process && cast.process.running) {
+  if (validateRequest(req, res)) {
     cast.process.increaseSpeed();
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
-  } else {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: EXPIRED_CAST });
   }
 });
 
 app.get("/decreaseSpeed", (req, res) => {
- if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } else if (req.connection.remoteAddress != cast.client) {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: INVALID_PARAMETERS });
-  }  else if (cast.process && cast.process.running) {
+  if (validateRequest(req, res)) {
     cast.process.decreaseSpeed();
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
-  } else {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: EXPIRED_CAST });
   }
 });
 
 app.get("/showSubtitles", (req, res) => {
- if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } else if (req.connection.remoteAddress != cast.client) {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: INVALID_PARAMETERS });
-  } else if (cast.process && cast.process.running) {
+  if (validateRequest(req, res)) {
     cast.process.showSubtitles();
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
-  } else {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: EXPIRED_CAST });
   }
 });
 
 app.get("/hideSubtitles", (req, res) => {
- if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } else if (req.connection.remoteAddress != cast.client) {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: INVALID_PARAMETERS });
-  } else if (cast.process && cast.process.running) {
+  if (validateRequest(req, res)) {
     cast.process.hideSubtitles();
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
-  } else {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: EXPIRED_CAST });
   }
 });
 
@@ -350,47 +355,23 @@ server.listen(HTTP_SERVER_PORT, () => {
 
 /* Deprecated Functionality */
 app.get("/volumeUp", (req, res) => {
- if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } else if (req.connection.remoteAddress != cast.client) {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: INVALID_PARAMETERS });
-  } else if (cast.process && cast.process.running) {
+  if (validateRequest(req, res)) {
     cast.process.increaseVolume();
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
-  } else {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: EXPIRED_CAST });
   }
 });
 
 app.get("/volumeDown", (req, res) => {
- if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } else if (req.connection.remoteAddress != cast.client) {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: INVALID_PARAMETERS });
-  } else if (cast.process && cast.process.running) {
+  if (validateRequest(req, res)) {
     cast.process.decreaseVolume();
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
-  } else {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: EXPIRED_CAST });
   }
 });
 
 app.get("/togglePause", (req, res) => {
-  if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } else if (req.connection.remoteAddress != cast.client) {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: INVALID_PARAMETERS });
-  } else if (cast.process && cast.process.running) { 
+  if (validateRequest(req, res)) { 
     if (cast.playing) {
       cast.process.pause();
       cast.playing = false;
@@ -403,8 +384,5 @@ app.get("/togglePause", (req, res) => {
 
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
-  } else {
-    res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: EXPIRED_CAST });
   }
 });
