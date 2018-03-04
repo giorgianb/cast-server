@@ -6,13 +6,19 @@ const OMXPlayer = require('node-omxplayer-raspberry-pi-cast');
 const spawn = require('child_process').spawn;
 const ip = require('ip');
 
-const WEBSOCKET_SERVER_PORT = 1337;
+const WEBSOCKET_SERVER_PORT_LEGACY = 1337;
+const WEBSOCKET_SERVER_PORT = 1338;
 const HTTP_SERVER_PORT = 8080;
 
 const VERSION = "0.11.0"
 
 const app = express();
 const server = require('http').Server(app);
+
+const wssLegacy = new WebSocket.Server({ port: WEBSOCKET_SERVER_PORT_LEGACY }, () => {
+  console.log("WebSocket server listening on %d", WEBSOCKET_SERVER_PORT);
+});
+
 const wss = new WebSocket.Server({ port: WEBSOCKET_SERVER_PORT }, () => {
   console.log("WebSocket server listening on %d", WEBSOCKET_SERVER_PORT);
 });
@@ -31,6 +37,7 @@ const cast = {
   id: null
 };
 
+const wsClientsLegacy = [];
 const wsClients = [];
 
 const DEFAULT_HEADERS = {
@@ -48,10 +55,19 @@ function isPlaying(host) {
   return (cast.client !== undefined && ip.isEqual(cast.client, host)) ? cast.playing && cast.process.running : false;
 }
 
+function getPlaybackStatus(host) {
+  return isPlaying(host) ? "Playing" : "Paused";
+}
+
+
 function stateChange() {
-  wsClients.forEach((client) => {
+  wsClientsLegacy.forEach((client) => {
     if (client.ws.readyState == WebSocket.OPEN)
       client.ws.send(JSON.stringify({ isPlaying: isPlaying(client.address) }));
+  });
+  wsClients.forEach((client) => {
+    if (client.ws.readyState == WebSocket.OPEN)
+      client.ws.send(JSON.stringify({ message: "playbackStatus", playbackStatus: isPlaying(client.address) }));
   });
 }
 
@@ -73,32 +89,11 @@ function validateRequest(req, res) {
   return true;
 }
 
-function printIPAddress() {
-  clearScreen();
-  let newLineCount = 0; 
-  const figlet = spawn(
-    "figlet", 
-    ["-w",  process.stdout.columns, "-c",  'Cast IP Address\n' + ip.address().replace(/\./g, ' . ')]
-  ); 
-
-  figlet.stdout.on('data', (data) => {
-    console.log(`${data}`);
-    newLineCount += (String(data).match(/\n/g) || []).length;
-
-  });
-
-  figlet.on("close", () => {
-    const lines = (process.stdout.rows - newLineCount) / 4;
-    for (let i = 0; i < lines; ++i)
-      console.log('\n');
-  });
+function isInt(value) {
+  return !isNaN(value) && parseInt(Number(value)) == value && !isNaN(parseInt(value, 10));
 }
 
-function clearScreen() {
-  console.log('\u001B[2J');
-}
-
-app.get("/cast", (req, res) => {
+function castVideo(req, res) {
   if (!("video" in req.query)) {
     res.writeHead(400, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: INVALID_PARAMETERS });
@@ -157,7 +152,35 @@ app.get("/cast", (req, res) => {
         stateChange();
       });
     });
-});
+}
+
+
+function printIPAddress() {
+/*  clearScreen();
+  let newLineCount = 0; 
+  const figlet = spawn(
+    "figlet", 
+    ["-w",  process.stdout.columns, "-c",  'Cast IP Address\n' + ip.address().replace(/\./g, ' . ')]
+  ); 
+
+  figlet.stdout.on('data', (data) => {
+    console.log(`${data}`);
+    newLineCount += (String(data).match(/\n/g) || []).length;
+
+  });
+
+  figlet.on("close", () => {
+    const lines = (process.stdout.rows - newLineCount) / 4;
+    for (let i = 0; i < lines; ++i)
+      console.log('\n');
+  }); */
+}
+
+function clearScreen() {
+//  console.log('\u001B[2J');
+}
+
+app.post("/cast", castVideo);
 
 app.get("/play", (req, res) => {
   if (validateRequest(req, res)) {
@@ -200,7 +223,7 @@ app.get("/getPlaybackStatus", (req, res) => {
 });
 
 app.get("/getDuration", (req, res) => {
-  if (validateRequest(req, res)) { 
+  if (validateRequest(req, res) && cast.playing) { 
     cast.process.getDuration((err, duration) => {
       if (!err) {
         res.writeHead(200, DEFAULT_HEADERS);
@@ -228,9 +251,9 @@ app.get("/getPosition", (req, res) => {
 });
 
 app.post("/setPosition", (req, res) => {
-  if ("position" in req.query) { 
+  if ("position" in req.query && isInt(req.query.position)) { 
     if (validateRequest(req, res)) {
-      cast.process.setPosition(req.query.position, (err, pos) => {
+      cast.process.setPosition(parseInt(req.query.position, 10), (err, pos) => {
         if (!err && pos) {
           res.writeHead(200, DEFAULT_HEADERS);
           writeJSONResponse(res, { position: (pos < 0) ? 0 : pos, status: SUCCESS });
@@ -360,10 +383,16 @@ app.get("/getVersion", (req, res) => {
   writeJSONResponse(res, { status: success, version: VESRSION });
 });
 
-wss.on('connection', (ws, req) => {
+wssLegacy.on('connection', (ws, req) => {
   wsClients.push({ ws: ws, address: req.connection.remoteAddress });
 
   ws.send(JSON.stringify({ isPlaying: isPlaying(req.connection.remoteAddress) }));
+});
+
+wss.on('connection', (ws, req) => {
+  wsClients.push({ ws: ws, address: req.connection.remoteAddress });
+
+  ws.send(JSON.stringify({ message: "playbackStatus", playbackStatus: getPlaybackStatus(req.connection.remoteAddress) }));
 });
 
 server.listen(HTTP_SERVER_PORT, () => {
@@ -377,6 +406,8 @@ server.listen(HTTP_SERVER_PORT, () => {
 
 
 /* Deprecated Functionality */
+app.get("/cast", castVideo);
+
 app.get("/volumeUp", (req, res) => {
   if (validateRequest(req, res)) {
     cast.process.increaseVolume();
