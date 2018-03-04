@@ -9,7 +9,7 @@ const ip = require('ip');
 const WEBSOCKET_SERVER_PORT = 1337;
 const HTTP_SERVER_PORT = 8080;
 
-const VERSION = "0.11"
+const VERSION = "0.11.0"
 
 const app = express();
 const server = require('http').Server(app);
@@ -130,18 +130,18 @@ app.get("/cast", (req, res) => {
           cast.process.getDuration((err, duration) => {
             if (err) {
               res.writeHead(400, DEFAULT_HEADERS);
-              writeJSONResponse(res, { status: UNKNOWN });
+              writeJSONResponse(res, { status: UNKNOWN, version: VERSION });
             } else if (cast.id != currentCastID) {
               res.writeHead(400, DEFAULT_HEADERS);
-              writeJSONResponse(res, { status: EXPIRED_CAST });
+              writeJSONResponse(res, { status: EXPIRED_CAST, version: VERSION });
             } else {
               res.writeHead(200, DEFAULT_HEADERS);
-              writeJSONResponse(res, { duration: duration, status: SUCCESS });
+              writeJSONResponse(res, { duration: duration, status: SUCCESS, version: VERSION });
             }
           });
         } else {
           res.writeHead(400, DEFAULT_HEADERS);
-          writeJSONResponse(res, { status: EXPIRED_CAST });
+          writeJSONResponse(res, { status: EXPIRED_CAST, version: VERSION });
         }
       });
 
@@ -154,9 +154,6 @@ app.get("/cast", (req, res) => {
       cast.playing = true;
       stateChange();
     });
-
-  res.writeHead(200, DEFAULT_HEADERS);
-  writeJSONResponse(res, { status: SUCCESS });
 });
 
 app.get("/play", (req, res) => {
