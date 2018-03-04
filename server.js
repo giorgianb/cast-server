@@ -67,7 +67,7 @@ function stateChange() {
   });
   wsClients.forEach((client) => {
     if (client.ws.readyState == WebSocket.OPEN)
-      client.ws.send(JSON.stringify({ message: "playbackStatus", playbackStatus: isPlaying(client.address) }));
+      client.ws.send(JSON.stringify({ messageType: "playbackStatus", playbackStatus: isPlaying(client.address) }));
   });
 }
 
@@ -392,7 +392,7 @@ wssLegacy.on('connection', (ws, req) => {
 wss.on('connection', (ws, req) => {
   wsClients.push({ ws: ws, address: req.connection.remoteAddress });
 
-  ws.send(JSON.stringify({ message: "playbackStatus", playbackStatus: getPlaybackStatus(req.connection.remoteAddress) }));
+  ws.send(JSON.stringify({ messageType: "playbackStatus", playbackStatus: getPlaybackStatus(req.connection.remoteAddress) }));
 });
 
 server.listen(HTTP_SERVER_PORT, () => {
