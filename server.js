@@ -104,6 +104,9 @@ app.get("/cast", (req, res) => {
     writeJSONResponse(res, { status: INVALID_PARAMETERS });
   }
 
+  cast.playing = false;
+  stateChange();
+
   if (!cast.process || !cast.process.running)
     cast.process = new OMXPlayer({ source: "loading-screen.mp4", output: "both", loop: true, noOsd: true });
   else
@@ -111,6 +114,7 @@ app.get("/cast", (req, res) => {
 
   cast.client = req.connection.remoteAddress;
   cast.id = (new Date()) + Math.random();
+  
   let currentCastID = cast.id;
   youtubedl.getInfo(req.query.video, 
     ["-format=bestvideo[ext!=webm]+bestaudio[ext!=webm]/best[ext!=webm]"], 
@@ -135,6 +139,8 @@ app.get("/cast", (req, res) => {
               res.writeHead(400, DEFAULT_HEADERS);
               writeJSONResponse(res, { status: EXPIRED_CAST, version: VERSION });
             } else {
+              cast.playing = true;
+              stateChange();
               res.writeHead(200, DEFAULT_HEADERS);
               writeJSONResponse(res, { duration: duration, status: SUCCESS, version: VERSION });
             }
@@ -150,9 +156,6 @@ app.get("/cast", (req, res) => {
         printIPAddress();
         stateChange();
       });
-
-      cast.playing = true;
-      stateChange();
     });
 });
 
@@ -176,6 +179,38 @@ app.get("/pause", (req, res) => {
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
   } 
+});
+
+app.get("/getPlaybackStatus", (req, res) => {
+  if (cast.process && (!cast.process.ready || !cast.process.running)
+   || req.connection.remoteAddress != cast.client || !cast.playing) {
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { status: NO_CAST, playbackStatus: "Paused" });
+  } else {
+    cast.process.getPlaybackStatus((err, playbackStatus) => {
+      if (err) {
+        res.writeHead(400, DEFAULT_HEADERS)
+        writeJSONResponse(res, { playbackStatus: "Paused", status: UNKNOWN });
+      } else {
+        res.writeHead(200, DEFAULT_HEADERS)
+        writeJSONResponse(res, { playbackStatus: playbackStatus, status: SUCCESS });
+      }
+    });
+  }
+});
+
+app.get("/getDuration", (req, res) => {
+  if (validateRequest(req, res)) { 
+    cast.process.getDuration((err, duration) => {
+      if (!err) {
+        res.writeHead(200, DEFAULT_HEADERS);
+        writeJSONResponse(res, { duration: duration, status: SUCCESS });
+      } else {
+        res.writeHead(400, DEFAULT_HEADERS);
+        writeJSONResponse(res, { status: UNKNOWN });
+      }
+    });
+  }
 });
 
 app.get("/getPosition", (req, res) => {
@@ -287,15 +322,6 @@ app.post("/setVolume", (req, res) => {
   }
 });
 
-app.get("/isPlaying", (req, res) => {
- if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: NO_CAST, isPlaying: false });
-  } else  {
-    res.writeHead(200, DEFAULT_HEADERS)
-    writeJSONResponse(res, { isPlaying: isPlaying(req.connection.remoteAddress), status: SUCCESS });
-  }
-});
 
 app.get("/increaseSpeed", (req, res) => {
   if (validateRequest(req, res)) {
@@ -364,6 +390,16 @@ app.get("/volumeDown", (req, res) => {
     cast.process.decreaseVolume();
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
+  }
+});
+
+app.get("/isPlaying", (req, res) => {
+ if (cast.process && !cast.process.ready) {
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { status: NO_CAST, isPlaying: false });
+  } else  {
+    res.writeHead(200, DEFAULT_HEADERS)
+    writeJSONResponse(res, { isPlaying: isPlaying(req.connection.remoteAddress), status: SUCCESS });
   }
 });
 
