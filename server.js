@@ -105,7 +105,7 @@ app.get("/cast", (req, res) => {
   }
 
   if (!cast.process || !cast.process.running)
-    cast.process = new OMXPlayer({ source: "loading-screen.mp4", output: "both", loop: true });
+    cast.process = new OMXPlayer({ source: "loading-screen.mp4", output: "both", loop: true, noOsd: true });
   else
     cast.process.newSource({ source: "loading-screen.mp4", output: "both", loop: true });
 
