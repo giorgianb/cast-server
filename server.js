@@ -57,7 +57,7 @@ function stateChange() {
 
 /* returns true of validation succeeded, false otherwise */
 function validateRequest(req, res) {
-  if (cast.process || !cast.process.ready) {
+  if (!cast.process || !cast.process.ready) {
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: NO_CAST });
     return false;
@@ -79,7 +79,7 @@ function printIPAddress() {
   const figlet = spawn(
     "figlet", 
     ["-w",  process.stdout.columns, "-c",  'Cast IP Address\n' + ip.address().replace(/\./g, ' . ')]
-  );
+  ); 
 
   figlet.stdout.on('data', (data) => {
     console.log(`${data}`);
@@ -157,7 +157,7 @@ app.get("/cast", (req, res) => {
 });
 
 app.get("/play", (req, res) => {
-  if (validateRequest(req, res))
+  if (validateRequest(req, res)) {
     cast.process.play();
     cast.playing = true;
     stateChange();
@@ -187,7 +187,7 @@ app.get("/getPosition", (req, res) => {
       } else {
         res.writeHead(400, DEFAULT_HEADERS);
         writeJSONResponse(res, { status: UNKNOWN });
-      });
+      }
     });
   }
 });
@@ -202,7 +202,7 @@ app.post("/setPosition", (req, res) => {
         } else {
           res.writeHead(400, DEFAULT_HEADERS);
           writeJSONResponse(res, { status: UNKNOWN });
-        });
+        }
       });
     }
   } else {
@@ -263,7 +263,7 @@ app.get("/getVolume", (req, res) => {
       } else {
         res.writeHead(400, DEFAULT_HEADERS);
         writeJSONResponse(res, { status: UNKNOWN });
-      });
+      }
     });
   }
 });
@@ -278,7 +278,7 @@ app.post("/setVolume", (req, res) => {
         } else {
           res.writeHead(400, DEFAULT_HEADERS);
           writeJSONResponse(res, { status: UNKNOWN });
-        });
+        }
       });
     }
   } else {
