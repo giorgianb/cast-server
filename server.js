@@ -10,13 +10,14 @@ const WEBSOCKET_SERVER_PORT_LEGACY = 1337;
 const WEBSOCKET_SERVER_PORT = 1338;
 const HTTP_SERVER_PORT = 8080;
 
+/* TODO: update version */
 const VERSION = "0.11.0"
 
 const app = express();
 const server = require('http').Server(app);
 
 const wssLegacy = new WebSocket.Server({ port: WEBSOCKET_SERVER_PORT_LEGACY }, () => {
-  console.log("WebSocket server listening on %d", WEBSOCKET_SERVER_PORT);
+  console.log("WebSocket server listening on %d", WEBSOCKET_SERVER_PORT_LEGACY );
 });
 
 const wss = new WebSocket.Server({ port: WEBSOCKET_SERVER_PORT }, () => {
@@ -28,11 +29,14 @@ const SUCCESS = 0;
 const INVALID_PARAMETERS = 101;
 const EXPIRED_CAST = 102;
 const NO_CAST = 103;
+const CAST_LOADING = 104;
+
 const UNKNOWN  = 1000;
 
 const cast = {
   process: null,
   playing: false,
+  loading: false,
   client: undefined,
   id: null
 };
@@ -65,14 +69,36 @@ function stateChange() {
     if (client.ws.readyState == WebSocket.OPEN)
       client.ws.send(JSON.stringify({ isPlaying: isPlaying(client.address) }));
   });
+
   wsClients.forEach((client) => {
     if (client.ws.readyState == WebSocket.OPEN)
-      client.ws.send(JSON.stringify({ messageType: "playbackStatus", playbackStatus: isPlaying(client.address) }));
+      client.ws.send(JSON.stringify({ messageType: "playbackStatus", playbackStatus: getPlaybackStatus(client.address) }));
+  });
+}
+
+function notifyClosed() {
+  wsClients.forEach((client) => {
+    if (client.ws.readyState == WebSocket.OPEN)
+      client.ws.send(JSON.stringify({ messageType: "playbackStatus", playbackStatus: "Stopped" }));
   });
 }
 
 /* returns true of validation succeeded, false otherwise */
 function validateRequest(req, res) {
+  if (cast.loading) {
+    res.writeHead(400, DEFAULT_HEADERS);
+    writeJSONResponse(res, { status: EXPIRED_CAST });
+    return false;
+  }
+
+  return validateRequestWeak(req, res);
+}
+
+
+/* this is a weaker version that doesn't check if the player is loading. This can be
+ * useful for the quit functionality */
+/* TODO: make quit use this function, and appropiately cancel a loading cast */
+function validateRequestWeak(req, res) {
   if (!cast.process || !cast.process.ready) {
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: NO_CAST });
@@ -85,7 +111,7 @@ function validateRequest(req, res) {
     res.writeHead(400, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: EXPIRED_CAST });
     return false;
-  }
+  } 
   return true;
 }
 
@@ -101,12 +127,14 @@ function castVideo(req, res) {
 
   cast.playing = false;
   stateChange();
+  notifyClosed();
 
   if (!cast.process || !cast.process.running)
     cast.process = new OMXPlayer({ source: "loading-screen.mp4", output: "both", loop: true, noOsd: true });
   else
-    cast.process.newSource({ source: "loading-screen.mp4", output: "both", loop: true });
+    cast.process.newSource({ source: "loading-screen.mp4", output: "both", loop: true, noOsd: true });
 
+  cast.loading = true;
   cast.client = req.connection.remoteAddress;
   cast.id = (new Date()) + Math.random();
   
@@ -125,6 +153,7 @@ function castVideo(req, res) {
 
       clearScreen();
       cast.process.newSource({ source: info.url, output: "both" }, () => {
+        cast.loading = false;
         if (currentCastID == cast.id) {
           cast.process.getDuration((err, duration) => {
             if (err) {
@@ -148,6 +177,7 @@ function castVideo(req, res) {
 
       cast.process.on("close", () => {
         cast.playing = false;
+        notifyClosed();
         printIPAddress();
         stateChange();
       });
@@ -156,7 +186,7 @@ function castVideo(req, res) {
 
 
 function printIPAddress() {
-/*  clearScreen();
+  clearScreen();
   let newLineCount = 0; 
   const figlet = spawn(
     "figlet", 
@@ -173,11 +203,11 @@ function printIPAddress() {
     const lines = (process.stdout.rows - newLineCount) / 4;
     for (let i = 0; i < lines; ++i)
       console.log('\n');
-  }); */
+  }); 
 }
 
 function clearScreen() {
-//  console.log('\u001B[2J');
+  console.log('\u001B[2J');
 }
 
 app.post("/cast", castVideo);
@@ -223,7 +253,7 @@ app.get("/getPlaybackStatus", (req, res) => {
 });
 
 app.get("/getDuration", (req, res) => {
-  if (validateRequest(req, res) && cast.playing) { 
+  if (validateRequest(req, res)) { 
     cast.process.getDuration((err, duration) => {
       if (!err) {
         res.writeHead(200, DEFAULT_HEADERS);
@@ -274,6 +304,7 @@ app.get("/quit", (req, res) => {
     cast.process.quit();
     cast.playing = false;
     stateChange();
+    notifyClosed();
 
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
@@ -384,14 +415,34 @@ app.get("/getVersion", (req, res) => {
 });
 
 wssLegacy.on('connection', (ws, req) => {
-  wsClients.push({ ws: ws, address: req.connection.remoteAddress });
+  wsClientsLegacy.push({ ws: ws, address: req.connection.remoteAddress });
 
   ws.send(JSON.stringify({ isPlaying: isPlaying(req.connection.remoteAddress) }));
 });
 
 wss.on('connection', (ws, req) => {
-  wsClients.push({ ws: ws, address: req.connection.remoteAddress });
+  const client = { 
+    ws: ws, 
+    address: req.connection.remoteAddress
+  };
 
+  client.positionUpdater = setInterval(() => {
+    
+    if (cast.client !== undefined
+      && ip.isEqual(client.address, cast.client) && cast.process
+      && cast.process.ready && cast.process.running && cast.playing) {
+      cast.process.getPosition((err, pos) => {
+        if (!err) {
+          if (client.ws.readyState !== WebSocket.OPEN)
+            clearInterval(client.positionUpdater);
+          else
+            client.ws.send(JSON.stringify({ messageType: "position", position: pos }));
+        }
+      });
+    }
+  }, 500);
+
+  wsClients.push(client);
   ws.send(JSON.stringify({ messageType: "playbackStatus", playbackStatus: getPlaybackStatus(req.connection.remoteAddress) }));
 });
 
@@ -403,7 +454,6 @@ server.listen(HTTP_SERVER_PORT, () => {
   );
   printIPAddress();
 });
-
 
 /* Deprecated Functionality */
 app.get("/cast", castVideo);
