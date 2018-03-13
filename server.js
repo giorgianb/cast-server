@@ -100,7 +100,7 @@ function validateRequest(req, res) {
 /* TODO: make quit use this function, and appropiately cancel a loading cast */
 function validateRequestWeak(req, res) {
   if (!cast.process || !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
+    res.writeHead(400, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: NO_CAST });
     return false;
   } else if (req.connection.remoteAddress != cast.client) {
@@ -360,8 +360,8 @@ app.get("/getVolume", (req, res) => {
 app.post("/setVolume", (req, res) => {
   if ("volume" in req.query) { 
     if (validateRequest(req, res)) {
-      cast.process.setPosition(req.query.volume, (err, vol) => {
-        if (!err && pos) {
+      cast.process.setVolume(parseFloat(req.query.volume, 10), (err, vol) => {
+        if (!err && vol) {
           res.writeHead(200, DEFAULT_HEADERS);
           writeJSONResponse(res, { volume: vol, status: SUCCESS });
         } else {
