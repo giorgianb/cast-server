@@ -121,7 +121,7 @@ function isInt(value) {
 }
 
 function isFloat(value) {
-  return !isNaN(value) && && !isNaN(parseFloat(value, 10));
+  return !isNaN(value) && !isNaN(parseFloat(value, 10));
 }
 
 function castVideo(req, res) {
