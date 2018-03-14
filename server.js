@@ -9,7 +9,7 @@ const ip = require('ip');
 const WEBSOCKET_SERVER_PORT = 1337;
 const HTTP_SERVER_PORT = 8080;
 
-const VERSION = "0.11"
+const VERSION = "0.11.0"
 
 const app = express();
 const server = require('http').Server(app);
