@@ -13,6 +13,7 @@ If you have issues executing the said instructions, delete the directory and per
 rm -rf cast-server/
 git clone https://gitlab.com/raspberry-pi-cast/cast-server
 cd cast-server/
+sudo apt install -y figlet
 npm install
 ```
 
