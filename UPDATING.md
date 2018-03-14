@@ -3,7 +3,7 @@ Go to the directory where cast-server was installed. Then run:
 
 ```
 cd cast-server/
-git pull
+git pull -X theirs
 sudo apt install -y figlet
 npm install
 ```
