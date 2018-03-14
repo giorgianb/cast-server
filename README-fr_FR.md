@@ -23,3 +23,5 @@ node server.js
 ```
 
 Pour lire des vidéos vers le Raspberry Pi, utilisez [l’extension cast](https://gitlab.com/raspberry-pi-cast/cast-addon-firefox).
+
+Traduit par Hugo Mainguy
