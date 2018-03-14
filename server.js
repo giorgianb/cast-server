@@ -30,6 +30,7 @@ const INVALID_PARAMETERS = 101;
 const EXPIRED_CAST = 102;
 const NO_CAST = 103;
 const CAST_LOADING = 104;
+const NEW_CASTER = 105;
 
 const UNKNOWN  = 1000;
 
@@ -87,7 +88,7 @@ function notifyClosed() {
 function validateRequest(req, res) {
   if (cast.loading) {
     res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: EXPIRED_CAST });
+    writeJSONResponse(res, { status: CAST_LOADING });
     return false;
   }
 
@@ -103,9 +104,9 @@ function validateRequestWeak(req, res) {
     res.writeHead(400, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: NO_CAST });
     return false;
-  } else if (req.connection.remoteAddress != cast.client) {
+  } else if (!ip.isEqual(req.connection.remoteAddress, cast.client)) {
     res.writeHead(400, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: INVALID_PARAMETERS });
+    writeJSONResponse(res, { status: NEW_CASTER });
     return false;
   } else if (!cast.process.running) {
     res.writeHead(400, DEFAULT_HEADERS);
@@ -116,7 +117,11 @@ function validateRequestWeak(req, res) {
 }
 
 function isInt(value) {
-  return !isNaN(value) && parseInt(Number(value)) == value && !isNaN(parseInt(value, 10));
+  return !isNaN(value) && !isNaN(parseInt(value, 10));
+}
+
+function isFloat(value) {
+  return !isNaN(value) && && !isNaN(parseFloat(value, 10));
 }
 
 function castVideo(req, res) {
@@ -148,7 +153,8 @@ function castVideo(req, res) {
       else if (err) {
         res.writeHead(500, DEFAULT_HEADERS);
         writeJSONResponse(res, { status: UNKNOWN });
-        throw err;
+        cast.process.quit();
+        return;
       }
 
       clearScreen();
@@ -157,7 +163,7 @@ function castVideo(req, res) {
         if (currentCastID == cast.id) {
           cast.process.getDuration((err, duration) => {
             if (err) {
-              res.writeHead(400, DEFAULT_HEADERS);
+              res.writeHead(500, DEFAULT_HEADERS);
               writeJSONResponse(res, { status: UNKNOWN, version: VERSION });
             } else if (cast.id != currentCastID) {
               res.writeHead(400, DEFAULT_HEADERS);
@@ -213,36 +219,46 @@ function clearScreen() {
 app.post("/cast", castVideo);
 
 app.get("/play", (req, res) => {
-  if (validateRequest(req, res)) {
-    cast.process.play();
-    cast.playing = true;
-    stateChange();
+  if (validateRequest(req, res)) 
+    cast.process.play((err) => {
+      if (err) {
+        res.writeHead(500, DEFAULT_HEADERS);
+        writeJSONResponse(res, { status: UNKNOWN });
+      } else {
+        res.writeHead(200, DEFAULT_HEADERS);
+        writeJSONResponse(res, { status: SUCCESS });
 
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } 
+        cast.playing = true;
+        stateChange();
+      }
+    });
 });
 
 app.get("/pause", (req, res) => {
-  if (validateRequest(req, res)) { 
-    cast.process.pause();
-    cast.playing = false;
-    stateChange();
+  if (validateRequest(req, res))
+    cast.process.pause((err) => {
+      if (err) {
+        res.writeHead(500, DEFAULT_HEADERS);
+        writeJSONResponse(res, { status: UNKNOWN });
+      } else {
+        res.writeHead(200, DEFAULT_HEADERS);
+        writeJSONResponse(res, { status: SUCCESS });
 
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  } 
+        cast.playing = false;
+        stateChange();
+      }
+    });
 });
 
 app.get("/getPlaybackStatus", (req, res) => {
   if (cast.process && (!cast.process.ready || !cast.process.running)
    || req.connection.remoteAddress != cast.client || !cast.playing) {
-    res.writeHead(200, DEFAULT_HEADERS);
+    res.writeHead(400, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: NO_CAST, playbackStatus: "Paused" });
   } else {
     cast.process.getPlaybackStatus((err, playbackStatus) => {
       if (err) {
-        res.writeHead(400, DEFAULT_HEADERS)
+        res.writeHead(500, DEFAULT_HEADERS)
         writeJSONResponse(res, { playbackStatus: "Paused", status: UNKNOWN });
       } else {
         res.writeHead(200, DEFAULT_HEADERS)
@@ -259,7 +275,7 @@ app.get("/getDuration", (req, res) => {
         res.writeHead(200, DEFAULT_HEADERS);
         writeJSONResponse(res, { duration: duration, status: SUCCESS });
       } else {
-        res.writeHead(400, DEFAULT_HEADERS);
+        res.writeHead(500, DEFAULT_HEADERS);
         writeJSONResponse(res, { status: UNKNOWN });
       }
     });
@@ -273,7 +289,7 @@ app.get("/getPosition", (req, res) => {
         res.writeHead(200, DEFAULT_HEADERS);
         writeJSONResponse(res, { position: (pos < 0) ? 0 : pos, status: SUCCESS });
       } else {
-        res.writeHead(400, DEFAULT_HEADERS);
+        res.writeHead(500, DEFAULT_HEADERS);
         writeJSONResponse(res, { status: UNKNOWN });
       }
     });
@@ -288,7 +304,7 @@ app.post("/setPosition", (req, res) => {
           res.writeHead(200, DEFAULT_HEADERS);
           writeJSONResponse(res, { position: (pos < 0) ? 0 : pos, status: SUCCESS });
         } else {
-          res.writeHead(400, DEFAULT_HEADERS);
+          res.writeHead(500, DEFAULT_HEADERS);
           writeJSONResponse(res, { status: UNKNOWN });
         }
       });
@@ -299,35 +315,46 @@ app.post("/setPosition", (req, res) => {
   }
 });
 
-app.get("/quit", (req, res) => {
-  if (validateRequest(req, res)) { 
-    cast.process.quit();
-    cast.playing = false;
-    stateChange();
-    notifyClosed();
+app.post("/quit", (req, res) => {
+  if (validateRequest(req, res))
+    cast.process.quit((err) => {
+      if (err) {
+        res.writeHead(500, DEFAULT_HEADERS);
+        writeJSONResponse(res, { status: UNKNOWN });
+      } else {
+        res.writeHead(200, DEFAULT_HEADERS);
+        writeJSONResponse(res, { status: SUCCESS });
 
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
+      }
+
+      cast.playing = false;
+      stateChange();
+      notifyClosed();
+    });
+});
+
+app.post("/seek", (req, res) => {
+  if ("offset" in req.query && isInt(req.query.offset)) { 
+    if (validateRequest(req, res))
+      cast.process.seek(parseInt(req.query.offset, 10), (err, offset) => {
+        if (offset === null) {
+          res.writeHead(400, DEFAULT_HEADERS);
+          writeJSONResponse(res, { status: INVALID_PARAMETERS });
+        } else if (err) {
+          res.writeHead(500, DEFAULT_HEADERS);
+          writeJSONResponse(res, { status: UNKNOWN });
+        } else {
+          res.writeHead(200, DEFAULT_HEADERS);
+          writeJSONResponse(res, { status: SUCCESS });
+        }
+      });
+  } else {
+    res.writeHead(400, DEfAULT_HEADERS)
+    writeJSONResponse(res, { status: INVALID_PARAMETERS });
   }
 });
 
-app.get("/skipForward", (req, res) => {
-  if (validateRequest(req, res)) {
-    cast.process.seek(30 * 10**6);
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  }
-});
-
-app.get("/skipBackwards", (req, res) => {
-  if (validateRequest(req, res)) {
-    cast.process.seek(-30 * 10**6);
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  }
-});
-
-app.get("/increaseVolume", (req, res) => {
+app.post("/increaseVolume", (req, res) => {
   if (validateRequest(req, res)) {
     cast.process.increaseVolume();
     res.writeHead(200, DEFAULT_HEADERS);
@@ -335,7 +362,7 @@ app.get("/increaseVolume", (req, res) => {
   }
 });
 
-app.get("/decreaseVolume", (req, res) => {
+app.post("/decreaseVolume", (req, res) => {
   if (validateRequest(req, res)) {
     cast.process.decreaseVolume();
     res.writeHead(200, DEFAULT_HEADERS);
@@ -350,7 +377,7 @@ app.get("/getVolume", (req, res) => {
         res.writeHead(200, DEFAULT_HEADERS);
         writeJSONResponse(res, { volume: vol, status: SUCCESS });
       } else {
-        res.writeHead(400, DEFAULT_HEADERS);
+        res.writeHead(500, DEFAULT_HEADERS);
         writeJSONResponse(res, { status: UNKNOWN });
       }
     });
@@ -358,14 +385,14 @@ app.get("/getVolume", (req, res) => {
 });
 
 app.post("/setVolume", (req, res) => {
-  if ("volume" in req.query) { 
+  if ("volume" in req.query && isFloat(req.query.volume)) { 
     if (validateRequest(req, res)) {
       cast.process.setVolume(parseFloat(req.query.volume, 10), (err, vol) => {
         if (!err && vol) {
           res.writeHead(200, DEFAULT_HEADERS);
           writeJSONResponse(res, { volume: vol, status: SUCCESS });
         } else {
-          res.writeHead(400, DEFAULT_HEADERS);
+          res.writeHead(500, DEFAULT_HEADERS);
           writeJSONResponse(res, { status: UNKNOWN });
         }
       });
@@ -376,24 +403,7 @@ app.post("/setVolume", (req, res) => {
   }
 });
 
-
-app.get("/increaseSpeed", (req, res) => {
-  if (validateRequest(req, res)) {
-    cast.process.increaseSpeed();
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  }
-});
-
-app.get("/decreaseSpeed", (req, res) => {
-  if (validateRequest(req, res)) {
-    cast.process.decreaseSpeed();
-    res.writeHead(200, DEFAULT_HEADERS);
-    writeJSONResponse(res, { status: SUCCESS });
-  }
-});
-
-app.get("/showSubtitles", (req, res) => {
+app.post("/showSubtitles", (req, res) => {
   if (validateRequest(req, res)) {
     cast.process.showSubtitles();
     res.writeHead(200, DEFAULT_HEADERS);
@@ -401,7 +411,7 @@ app.get("/showSubtitles", (req, res) => {
   }
 });
 
-app.get("/hideSubtitles", (req, res) => {
+app.post("/hideSubtitles", (req, res) => {
   if (validateRequest(req, res)) {
     cast.process.hideSubtitles();
     res.writeHead(200, DEFAULT_HEADERS);
@@ -476,7 +486,7 @@ app.get("/volumeDown", (req, res) => {
 
 app.get("/isPlaying", (req, res) => {
  if (cast.process && !cast.process.ready) {
-    res.writeHead(200, DEFAULT_HEADERS);
+    res.writeHead(400, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: NO_CAST, isPlaying: false });
   } else  {
     res.writeHead(200, DEFAULT_HEADERS)
@@ -496,6 +506,54 @@ app.get("/togglePause", (req, res) => {
       stateChange();
     }
 
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { status: SUCCESS });
+  }
+});
+
+app.post("/increaseSpeed", (req, res) => {
+  if (validateRequest(req, res)) {
+    cast.process.increaseSpeed();
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { status: SUCCESS });
+  }
+});
+
+app.post("/decreaseSpeed", (req, res) => {
+  if (validateRequest(req, res)) {
+    cast.process.decreaseSpeed();
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { status: SUCCESS });
+  }
+});
+
+app.get("/showSubtitles", (req, res) => {
+  if (validateRequest(req, res)) {
+    cast.process.showSubtitles();
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { status: SUCCESS });
+  }
+});
+
+app.get("/hideSubtitles", (req, res) => {
+  if (validateRequest(req, res)) {
+    cast.process.hideSubtitles();
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { status: SUCCESS });
+  }
+});
+
+app.get("/skipBackwards", (req, res) => {
+  if (validateRequest(req, res)) {
+    cast.process.seek(-30 * 10**6);
+    res.writeHead(200, DEFAULT_HEADERS);
+    writeJSONResponse(res, { status: SUCCESS });
+  }
+});
+
+app.get("/skipForward", (req, res) => {
+  if (validateRequest(req, res)) {
+    cast.process.seek(30 * 10**6);
     res.writeHead(200, DEFAULT_HEADERS);
     writeJSONResponse(res, { status: SUCCESS });
   }
