@@ -10,8 +10,7 @@ const WEBSOCKET_SERVER_PORT_LEGACY = 1337;
 const WEBSOCKET_SERVER_PORT = 1338;
 const HTTP_SERVER_PORT = 8080;
 
-/* TODO: update version */
-const VERSION = "0.11.0"
+const VERSION = "STABLE_0.1.2"
 
 const app = express();
 const server = require('http').Server(app);
