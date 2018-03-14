@@ -1,5 +1,5 @@
 ## Updating
-Go to the directory where cast-server was installed:
+Go to the directory where cast-server was installed. Then run:
 
 ```
 cd cast-server/
